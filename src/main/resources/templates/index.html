@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>WY日健康</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+    <!-- 引入ElementUI样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <!-- 引入ElementUI组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="/jquery.min.js"></script>
+    <script src="/axios-0.18.0.js" ></script>
+</head>
+<body>
+<div>
+    <font color="red",size="10">
+        <b>
+            <center>人员健康日报</center>
+        </b>
+    </font>
+    <p>
+          说明：为落实广东省公共卫生时间以及响应有关要求，切实做好新型冠状病毒感染的防控工作，即日起公司对相关人员开展健康日申报调查，敬请配合
+    </p>
+    <p>
+        (1)申报范围：公司在册员工、相关方常驻人员
+    </p>
+    <p>
+        (2)申报事项：每日健康状况相关信息
+    </p>
+    <p>
+        (3)时间要求：每日一报，每天19:00前完成申报
+    </p>
+
+    <font color="red",size="10">
+        <b>
+            <center>本网站由IT科笨笨提供技术支持</center>
+        </b>
+    </font>
+<div id="app">
+
+
+    <el-form ref="form" :model="form" label-width="80px">
+        <el-form-item>
+            <el-button type="primary" @click="add()">立即提交</el-button>
+            <el-button>取消</el-button>
+        </el-form-item>
+        <el-form-item label="胸卡号">
+            <el-input v-model="form.employId" @change="getData()"></el-input>
+        </el-form-item>
+        <el-form-item label="姓名">
+            <el-input v-model="form.name"></el-input>
+        </el-form-item>
+        <el-form-item label="所在部门">
+            <el-radio-group v-model="form.resource">
+                <template>
+                    <el-select v-model="form.department" placeholder="请选择">
+                        <el-option
+                                v-for="item in options"
+                                :key="item.department"
+                                :label="item.label"
+                                :value="item.department">
+                        </el-option>
+                    </el-select>
+                </template>
+
+            </el-radio-group>
+        </el-form-item>
+        <el-form-item label="今日状态">
+            <el-radio-group v-model="form.resource2">
+                <template>
+                    <el-select v-model="form.status" placeholder="请选择">
+                        <el-option
+                                v-for="item in options2"
+                                :key="item.status"
+                                :label="item.label"
+                                :value="item.status">
+                        </el-option>
+                    </el-select>
+                </template>
+
+                <el-form-item label="">
+                    <el-input v-model="form.input" placeholder="其他（在家办公等）"></el-input>
+                </el-form-item>
+            </el-radio-group>
+
+              </el-form-item>
+        <el-form-item label="通勤方式">
+                <el-input v-model="form.traffic"placeholder="公司交通车/自驾车/二轮/步行/其他"></el-input>
+            </el-form-item>
+
+        <el-form-item label="日健康">
+            <template>
+                <el-checkbox-group v-model="checkList">
+                    <el-checkbox label="体温正常"></el-checkbox>
+                    <el-checkbox label="发热37.5℃以下"></el-checkbox>
+                    <el-checkbox label="发热37.5℃（含）以上"></el-checkbox>
+                    <el-checkbox label="干咳" ></el-checkbox>
+                    <el-checkbox label="乏力" ></el-checkbox>
+                    <el-checkbox label="其他" >
+                        <el-input v-model="form.dayhealth" placeholder="其他说明"></el-input>
+                    </el-checkbox>
+                </el-checkbox-group>
+            </template>
+        </el-form-item>
+
+        <el-form-item label="是否去医院就诊" label-width="150px" >
+            <el-input v-model="form.hospital" placeholder="就诊时间-医院-情况等说明/无"></el-input>
+        </el-form-item>
+
+        <el-form-item label="上下班常驻有无变化" label-width="150px" >
+            <el-input v-model="form.area" placeholder="新居住的具体地址/无"></el-input>
+        </el-form-item>
+
+        <el-form-item label="日去向">
+            <template>
+                <el-button type="text" @click="open">各类人员填写提示</el-button>
+            </template>
+            <el-input v-model="form.dayfrom" placeholder="始发地（市-区）"></el-input>
+            <el-input v-model="form.daygoto" placeholder="目的地（市-区）"></el-input>
+            <el-input v-model="form.standup" placeholder="停留地（市-区/无）"></el-input>
+        </el-form-item>
+
+
+
+        <el-form-item label="当天是否返穗">
+            <template>
+                <el-radio v-model="form.radio" label="1">是</el-radio>
+                <el-radio v-model="form.radio" label="2">否</el-radio>
+                <el-input v-model="form.dayarea" placeholder="否则输入当天所在地"></el-input>
+            </template>
+        </el-form-item>
+
+        <el-form-item label="返穗日期">
+        <template>
+            <div class="block">
+                <span class="demonstration"></span>
+                <el-date-picker
+                        v-model="form.gotoGZ"
+                        align="right"
+                        type="date"
+                        placeholder="选择日期"
+                        :picker-options="pickerOptions">
+                </el-date-picker>
+            </div>
+        </template>
+        </el-form-item>
+
+        <el-form-item label="返穗方式">
+        <el-input v-model="form.traffictogz" placeholder="交通方式"></el-input>
+        </el-form-item>
+
+        <el-form-item label="上班日期">
+            <template>
+                <div class="block">
+                    <span class="demonstration"></span>
+                    <el-date-picker
+                            v-model="form.gotoCompany"
+                            type="date"
+                            placeholder="选择日期">
+                    </el-date-picker>
+                </div>
+            </template>
+        </el-form-item>
+
+        <el-form-item label="家人或同住人员">
+            <template>
+                <el-checkbox-group v-model="checkList2">
+                    <el-checkbox label="体温正常"></el-checkbox>
+                    <el-checkbox label="发热37.5℃以下"></el-checkbox>
+                    <el-checkbox label="发热37.5℃（含）以上"></el-checkbox>
+                    <el-checkbox label="干咳" ></el-checkbox>
+                    <el-checkbox label="乏力" ></el-checkbox>
+                    <el-checkbox label="其他" >
+                        <el-input v-model="form.famHealthOther" placeholder="其他说明"></el-input>
+                    </el-checkbox>
+                </el-checkbox-group>
+            </template>
+        </el-form-item>
+
+        <el-form-item label="其他">
+            <el-input v-model="form.otherstatus" placeholder="其他异常情况说明"></el-input>
+        </el-form-item>
+
+        <el-form-item label="移动路径图片上传">
+        <el-upload
+                class="upload-demo"
+                action='/upload'
+                :on-preview="handlePreview"
+                :on-remove="handleRemove"
+                :before-remove="beforeRemove"
+                multiple
+                :limit="1"
+                name="file"
+                :data="{filename: this.form.employId}"
+                :on-exceed="handleExceed"
+                :file-list="fileList">
+            <el-button size="small" type="primary">点击上传</el-button>
+            <div slot="tip" class="el-upload__tip">只能上传jpg/png文件</div>
+        </el-upload>
+        </el-form-item>
+        <el-form-item>
+        <div class="demo-image__placeholder">
+            <div class="block">
+                <span class="demonstration"></span>
+                <el-image :src="src"></el-image>
+            </div>
+        </div>
+        </el-form-item>
+        <el-form-item label="填报时间">
+            <el-date-picker
+                    type="date"
+                    placeholder="选择日期"
+                    v-model="form.messageDay"
+                    style="width: 100%;"
+                    value-format="yyyy-MM-dd"
+            ></el-date-picker>
+        </el-form-item>
+
+        <el-form-item>
+        <el-button type="primary" @click="add()">立即提交</el-button>
+        <el-button>取消</el-button>
+        </el-form-item>
+        </el-form>
+    <!-- Form -->
+    <el-dialog title="医院就诊" :visible.sync="form.delivery">
+        <el-form :model="form">
+            <el-form-item label="就诊医院、时间与情况" :label-width="formLabelWidth">
+                <el-input v-model="form.hosstatus" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="form.delivery=false">取 消</el-button>
+            <el-button type="primary" @click="form.delivery=false">确 定</el-button>
+        </div>
+    </el-dialog>
+    <el-dialog title="医院就诊" :visible.sync="form.delivery">
+        <el-form :model="form">
+            <el-form-item label="就诊医院、时间与情况" :label-width="formLabelWidth">
+                <el-input v-model="form.hostime" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="form.delivery=false">取 消</el-button>
+            <el-button type="primary" @click="form.delivery=false">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+
+    <p>以上填写过程中，若有疑问请联系人力资源管理科黄铿鹏（662960）</p>
+    <p>提醒：所有员工必须遵守国家、省、市出台的疫情防控的各项规定，做好个人防护及信息报备。对违反有关防控规定或“瞒报”“谎报”，一经发现将依法严肃处理。</p>
+    <font color="red",size="10">
+        <b>
+            <center>五羊-本田摩托（广州）有限公司</center>
+        </b>
+    </font>
+</div>
+</body>
+<style>
+    .el-dropdown-link {
+        cursor: pointer;
+        color: #409EFF;
+    }
+    .el-icon-arrow-down {
+        font-size: 12px;
+    }
+</style>
+<script>
+
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                dialogFormVisible: false,
+                src: '/img/c9de18830b9f91cd660875dbf5121de.jpg',
+                form: {
+                    employId: null,
+                    comeDate: null,
+                    messageDay: new Date()
+                },
+                options: [{
+                    department: '生技发展部',
+                    label: '生技发展部'
+                }, {
+                    department: '生产部',
+                    label: '生产部'
+                }, {
+                    department: '总经办',
+                    label: '总经办'
+                }, {
+                    department: '综管部',
+                    label: '综管部'
+                }, {
+                    department: '营销部',
+                    label: '营销部'
+                },{
+                    department: '商策部',
+                    label: '商策部'
+                },{
+                    department: '海外部',
+                    label: '海外部'
+                },{
+                    department: '监察部',
+                    label: '监察部'
+                },{
+                    department: '财务部',
+                    label: '财务部'
+                }, {
+                    department: '技术部',
+                    label: '技术部'
+                },{
+                    department: '经理室',
+                    label: '经理室'
+                },                   {
+                    department: '党群部',
+                    label: '党群部'
+                    },                   {
+                    department: '供应部',
+                    label: '供应部'
+                    },                   {
+                    department: '品质部',
+                    label: '品质部'
+                    }],
+                department: '',
+                    options2: [{
+                        status: '已复工-在司上班',
+                        label: '已复工-在司上班'
+                    }, {
+                        status: '公务外出（不含出差）',
+                        label: '公务外出（不含出差）'
+                    }, {
+                        status: '出差',
+                        label: '出差'
+                    }, {
+                        status: '当天请假',
+                        label: '当天请假'
+                    }, {
+                        status: '未复工',
+                        label: '未复工'
+                    },{
+                        status: '公司休息日-居家休息',
+                        label: '公司休息日-居家休息'
+                    }],
+                status: '',
+
+                radio: '1',
+                    input: '',
+                checkList: ['选中且禁用','复选框 A'],
+                checkList2: ['选中且禁用','复选框 A'],
+                pickerOptions: {
+                    shortcuts: [{
+                        text: '今天',
+                        onClick(picker) {
+                            picker.$emit('pick', new Date());
+                        }
+                    }, {
+                        text: '昨天',
+                        onClick(picker) {
+                            const date = new Date();
+                            date.setTime(date.getTime() - 3600 * 1000 * 24);
+                            picker.$emit('pick', date);
+                        }
+                    }, {
+                        text: '一周前',
+                        onClick(picker) {
+                            const date = new Date();
+                            date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                            picker.$emit('pick', date);
+                        }
+                    }]
+                },
+                value1: '',
+                value2: '',
+                fileList: [],
+            };
+        },
+        created(){
+            this.getNowTime();
+        },
+        methods: {
+            getData() {
+                axios.get('/health/form/getDataById?id='+this.form.employId).then(response=>{
+                    if (response.data) {
+                        this.form = response.data
+                    }
+                })
+            },
+            handleRemove(file, fileList) {
+                console.log(file, fileList);
+            },
+            handlePreview(file) {
+                console.log(file);
+            },
+            handleExceed(files, fileList) {
+                this.$message.warning(`当前限制选择 3 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+            },
+            beforeRemove(file, fileList) {
+                return this.$confirm(`确定移除 ${ file.name }？`);
+
+            },
+            add() {
+                this.form.id = '';
+                this.form.messageDay = new Date();
+                axios.post('/health/form/user',this.form).then(()=>{
+                    this.$message({
+                        type: 'success',
+                        message: '提交成功！'
+                    })
+                });
+            },
+            getNowTime() {
+                var now = new Date();
+                var year = now.getFullYear(); //得到年份
+                var month = now.getMonth(); //得到月份
+                var date = now.getDate(); //得到日期
+                month = month + 1;
+                month = month.toString().padStart(2, "0");
+                date = date.toString().padStart(2, "0");
+                var defaultDate = `${year}-${month}-${date}`;
+                this.form.comeDate = defaultDate;
+            },
+            open() {
+                //1.我们要将后台返回的数据转存成数组，格式为： data=['错误提示一！！！','错误提示二！！！','错误提示三！！！'];
+                let data = ['上班人员：填写当天离司后至次日上班的去向；','出差人员：填写当天出差集体行程情况、包括目的地、交通工具等','其他人员：近日内跨行政区移动过，填写始发地至目的地的情况','（1）停留途径地及公共场合：如填写菜市场、餐厅、超市、油站、高速服务点等','（2）停留情况：填写具体停留时间、地点、活动内容'];
+                //2.新建newDatas数组
+                let newDatas = [];
+                const h = this.$createElement;
+                //3.通过循环data数组，调用h方法，将每项值传给h,h('标签名',样式,具体内容)
+                for(let i in data){
+                    //4.将data数据push进newDatas数组中
+                    newDatas.push(h('p',null,data[i]));
+                };
+                this.$msgbox({
+                    title: '填写提示',
+                    //5.将newDatas传进h方法生成的代码格式为：
+                    // <div>
+                    //      <p>错误提示一！！！</p>
+                    //      <p>错误提示二！！！</p>
+                    //      <p>错误提示三！！！</p>
+                    // </div>
+                    message: h('div',null, newDatas),
+                    showCancelButton: true,
+                    confirmButtonText: '确定',
+                    callback: action => {
+                        this.$message({
+                            type: 'info',
+                            message: `action: ${ action }`
+                        });
+                    }
+                });
+            }
+        }
+    })
+</script>
+
+</html>
